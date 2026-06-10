@@ -1,0 +1,17 @@
+export const ROUTES = {
+  LOGIN: "/login",
+  SIGNUP: "/signup",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
+  DASHBOARD: "/",
+  SALES: "/sales",
+  PRESCRIPTIONS: "/prescriptions",
+  PATIENTS: "/patients",
+  INVENTORY: "/inventory",
+  BILLING: "/billing",
+  INSURANCE: "/insurance",
+  SUPPLIERS: "/suppliers",
+  REPORTS: "/reports",
+  SETTINGS: "/settings",
+  CHANGE_PASSWORD: "/change-password",
+} as const;

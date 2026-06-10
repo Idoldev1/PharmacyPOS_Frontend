@@ -1,0 +1,5 @@
+@media print {
+  #sidebar, #topbar, .no-print { display: none !important; }
+  body { font-size: 12px; }
+  .receipt { width: 80mm; margin: 0 auto; }
+}
