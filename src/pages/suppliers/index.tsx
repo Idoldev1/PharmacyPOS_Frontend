@@ -104,7 +104,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [items, setItems] = useState<{ drugId: string; drugName: string; quantity: number; unitCost: number }[]>([]);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
+  const [, setSent] = useState(false);
 
   const { data: drugsData } = useQuery({
     queryKey: [QUERY_KEYS.DRUGS],
