@@ -12,7 +12,6 @@ export function UserNav() {
   const user = useAuthStore((s) => s.user);
   const { clearAuth } = useAuthStore();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -64,7 +63,6 @@ export function UserNav() {
         </div>
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg">
           <div className="border-b border-slate-200 px-4 py-3">
@@ -77,7 +75,6 @@ export function UserNav() {
           </div>
 
           <div className="py-1">
-            {/* Profile Option */}
             <button
               onClick={() => handleNavigate(`${ROUTES.SETTINGS}#profile`)}
               className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
@@ -86,7 +83,6 @@ export function UserNav() {
               <span>Profile</span>
             </button>
 
-            {/* Settings Option */}
             <button
               onClick={() => handleNavigate(ROUTES.SETTINGS)}
               className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
@@ -95,7 +91,6 @@ export function UserNav() {
               <span>Settings</span>
             </button>
 
-            {/* Logout Option */}
             <button
               onClick={handleLogout}
               className="flex w-full items-center gap-3 border-t border-slate-200 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50"

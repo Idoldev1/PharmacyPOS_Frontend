@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #f5f7fa;
@@ -15,6 +16,77 @@
   --sidebar-accent: #334155;
 }
 
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --sidebar: #0f172a;
+  --sidebar-accent: #1e293b;
+}
+
+/* ─── Global dark-mode overrides ─────────────────────────────────────────────
+   These use double-class specificity (.dark .utility) which beats Tailwind's
+   single-class utilities without !important. Accent colors (teal, amber,
+   green, red, blue) are intentionally left alone so they stay vivid.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Backgrounds */
+.dark .bg-white          { background-color: #1e293b; }
+.dark .bg-slate-50       { background-color: #0f172a; }
+.dark .bg-slate-100      { background-color: #1e293b; }
+.dark .bg-slate-200      { background-color: #334155; }
+
+/* Hover backgrounds */
+.dark .hover\:bg-white:hover        { background-color: #334155; }
+.dark .hover\:bg-slate-50:hover     { background-color: #1e293b; }
+.dark .hover\:bg-slate-100:hover    { background-color: #334155; }
+.dark .hover\:bg-slate-200:hover    { background-color: #475569; }
+
+/* Text */
+.dark .text-slate-900    { color: #f8fafc; }
+.dark .text-slate-800    { color: #f1f5f9; }
+.dark .text-slate-700    { color: #e2e8f0; }
+.dark .text-slate-600    { color: #cbd5e1; }
+.dark .text-slate-500    { color: #94a3b8; }
+.dark .text-slate-400    { color: #cbd5e1; }
+.dark .text-slate-300    { color: #e2e8f0; }
+
+/* Borders */
+.dark .border-slate-100  { border-color: #1e293b; }
+.dark .border-slate-200  { border-color: #334155; }
+.dark .border-slate-300  { border-color: #475569; }
+
+/* Divide (table rows, list separators) */
+.dark .divide-slate-100 > * + *  { border-color: #1e293b; }
+.dark .divide-slate-200 > * + *  { border-color: #334155; }
+
+/* Form controls */
+.dark input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+.dark select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+/* Shadows — heavier alpha on dark surfaces */
+.dark .shadow-sm  { box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.dark .shadow     { box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+.dark .shadow-md  { box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+.dark .shadow-lg  { box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
+.dark .shadow-xl  { box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+
 * {
   box-sizing: border-box;
 }
@@ -24,6 +96,13 @@ body {
   font-family: "Outfit", system-ui, sans-serif;
   background: var(--background);
   color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.2s ease;
+}
+
+/* Smooth dark mode colour transitions on layout-level elements only */
+header, aside, main, nav, footer,
+.dark-transition {
+  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.3s ease;
 }
 
 #root {

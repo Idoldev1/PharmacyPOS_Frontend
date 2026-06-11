@@ -72,18 +72,30 @@ export default function AuthPage() {
           Trusted Healthcare Platform
         </div>
 
-        <h1
-          className="mb-1 text-7xl font-semibold leading-none text-white"
-          style={{ fontFamily: "'Crimson Text', Georgia, serif" }}
-        >
-          HealthPlus
-        </h1>
-        <h2
-          className="mb-8 text-7xl font-semibold leading-none text-teal-400"
-          style={{ fontFamily: "'Crimson Text', Georgia, serif" }}
-        >
-          Pharmacy
-        </h2>
+        {(() => {
+          const name = import.meta.env.VITE_PHARMACY_NAME ?? "Pharmacy";
+          const lastSpace = name.lastIndexOf(" ");
+          const line1 = lastSpace > 0 ? name.slice(0, lastSpace) : name;
+          const line2 = lastSpace > 0 ? name.slice(lastSpace + 1) : null;
+          return (
+            <>
+              <h1
+                className="mb-1 text-7xl font-semibold leading-none text-white"
+                style={{ fontFamily: "'Crimson Text', Georgia, serif" }}
+              >
+                {line1}
+              </h1>
+              {line2 && (
+                <h2
+                  className="mb-8 text-7xl font-semibold leading-none text-teal-400"
+                  style={{ fontFamily: "'Crimson Text', Georgia, serif" }}
+                >
+                  {line2}
+                </h2>
+              )}
+            </>
+          );
+        })()}
 
         <p className="mb-14 max-w-sm text-base leading-relaxed text-white/75">
           Advanced pharmaceutical management system designed for modern
