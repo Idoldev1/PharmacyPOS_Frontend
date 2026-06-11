@@ -1,3 +1,5 @@
+export type PaymentMethod = "cash" | "card" | "pos" | "transfer" | "hmo";
+
 export interface CartItem {
   drugId: string;
   drugName: string;
@@ -23,7 +25,7 @@ export interface Sale {
   discount: number;
   tax: number;
   total: number;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   cashierId: string;
   status: string;
   createdAt: string;

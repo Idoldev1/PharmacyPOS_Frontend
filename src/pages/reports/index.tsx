@@ -119,7 +119,7 @@ export default function ReportsPage() {
                 <YAxis stroke="#64748B" style={{ fontSize: "12px" }}
                   tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
-                  formatter={(v: number) => [`₦${Number(v).toLocaleString()}`, "Revenue"]}
+                  formatter={(v) => [`₦${Number(v).toLocaleString()}`, "Revenue"] as [string, string]}
                   contentStyle={{ backgroundColor: "#fff", border: "1px solid #E2E8F0", borderRadius: "8px" }}
                 />
                 <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} />
@@ -151,7 +151,7 @@ export default function ReportsPage() {
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => [`${v}%`, "Share"]} />
+                <Tooltip formatter={(v) => [`${v}%`, "Share"] as [string, string]} />
               </PieChart>
             </ResponsiveContainer>
           )}
