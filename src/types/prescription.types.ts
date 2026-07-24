@@ -1,4 +1,4 @@
-export type PrescriptionStatus = "pending" | "verified" | "dispensed" | "flagged";
+export type PrescriptionStatus = "Pending" | "Verified" | "Dispensed" | "Flagged";
 
 export interface PrescriptionLine {
   id: string;

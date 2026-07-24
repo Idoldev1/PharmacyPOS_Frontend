@@ -1,39 +1,46 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, Plus, Minus, Trash2, Receipt, CheckCircle, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, Plus, Minus, Trash2, Receipt, KeyRound, X, Clock } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useCartStore } from "../../store/cartStore";
 import { inventoryService } from "../../services/inventoryService";
 import { salesService } from "../../services/salesService";
+import { patientService } from "../../services/patientService";
 import { useDebounce } from "../../hooks/useDebounce";
+import { usePermissions } from "../../hooks/usePermissions";
+import { Permissions } from "../../constants/permissions";
 import { QUERY_KEYS } from "../../constants/queryKeys";
 import type { Drug } from "../../types/drug.types";
-import type { Sale } from "../../types/sale.types";
-
-const PAYMENT_METHODS = ["Cash", "Card", "Mobile Money", "HMO"] as const;
+import type { PendingSale } from "../../types/sale.types";
+import type { Patient } from "../../types/patient.types";
 
 function fmt(n: number) {
   return `₦${Number(n).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
 }
 
 function stockVariant(drug: Drug) {
-  if (drug.stockQty === 0) return "danger" as const;
-  if (drug.stockQty <= drug.reorderLevel) return "warning" as const;
+  if (drug.availableQty === 0) return "danger" as const;
+  if (drug.availableQty <= drug.reorderLevel) return "warning" as const;
   return "success" as const;
 }
 
-// ─── Receipt overlay ─────────────────────────────────────────────────────────
-function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+function minutesLeft(expiresAt: string) {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.round(ms / 60000));
+}
+
+// ─── Sale code overlay ───────────────────────────────────────────────────────
+function SaleCodeModal({ sale, onClose }: { sale: PendingSale; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <div className="flex items-center gap-3">
-            <CheckCircle className="text-teal-600" size={24} />
+            <KeyRound className="text-teal-600" size={24} />
             <div>
-              <h2 className="font-bold text-slate-900">Sale Complete</h2>
-              <p className="text-xs text-slate-500">{sale.receiptNo}</p>
+              <h2 className="font-bold text-slate-900">Sale Initiated</h2>
+              <p className="text-xs text-slate-500">Give this code to the customer</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100">
@@ -41,11 +48,18 @@ function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           </button>
         </div>
 
-        <div className="divide-y divide-slate-100 p-5">
+        <div className="p-6 text-center">
+          <p className="text-4xl font-bold tracking-[0.3em] text-teal-600">{sale.code}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Expires in {minutesLeft(sale.expiresAt)} minute(s) — the cashier will need this code to complete the sale.
+          </p>
+        </div>
+
+        <div className="divide-y divide-slate-100 px-5">
           {sale.items.map((item) => (
             <div key={item.drugId} className="flex justify-between py-2 text-sm">
               <span className="text-slate-700">
-                {item.drugName} × {item.quantity}
+                {item.drugName}{item.brandName ? ` (${item.brandName})` : ""} × {item.quantity}
               </span>
               <span className="font-medium">{fmt(Number(item.subtotal))}</span>
             </div>
@@ -53,10 +67,6 @@ function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
         </div>
 
         <div className="space-y-2 border-t border-slate-100 px-5 pb-2 pt-3 text-sm">
-          <div className="flex justify-between text-slate-500">
-            <span>Subtotal</span>
-            <span>{fmt(Number(sale.subtotal))}</span>
-          </div>
           {Number(sale.discount) > 0 && (
             <div className="flex justify-between text-emerald-600">
               <span>Discount</span>
@@ -66,10 +76,6 @@ function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
           <div className="flex justify-between font-bold text-slate-900 pt-2 border-t border-slate-100">
             <span>Total</span>
             <span className="text-lg text-teal-600">{fmt(Number(sale.total))}</span>
-          </div>
-          <div className="flex justify-between text-slate-500">
-            <span>Payment</span>
-            <span className="capitalize">{sale.paymentMethod}</span>
           </div>
         </div>
 
@@ -86,12 +92,16 @@ function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function SalesPage() {
   const [search, setSearch] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [discountPct, setDiscountPct] = useState(0);
-  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [initiatedSale, setInitiatedSale] = useState<PendingSale | null>(null);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   const debouncedSearch = useDebounce(search, 350);
+  const debouncedPatientSearch = useDebounce(patientSearch, 350);
   const { items, addItem, removeItem, updateQty, clearCart } = useCartStore();
+  const { hasPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
   const discountAmount = (subtotal * discountPct) / 100;
@@ -107,29 +117,61 @@ export default function SalesPage() {
 
   const drugs = drugResult?.items ?? [];
 
-  // Checkout mutation
-  const checkout = useMutation({
+  // Patient search (optional link for the sale)
+  const { data: patientResult } = useQuery({
+    queryKey: [QUERY_KEYS.PATIENTS, "sale-search", debouncedPatientSearch],
+    queryFn: () =>
+      patientService.getPatients({ q: debouncedPatientSearch, pageSize: 5 }).then((r) => r.data),
+    enabled: debouncedPatientSearch.trim().length > 0,
+  });
+
+  const patientMatches = patientResult?.items ?? [];
+
+  const canCancelPending = hasPermission(Permissions.Sales.Cancel);
+
+  // Pending sales this pharmacist/branch has initiated (for manual cancellation)
+  const { data: pendingSales } = useQuery({
+    queryKey: [QUERY_KEYS.PENDING_SALES],
+    queryFn: () => salesService.getPendingSales().then((r) => r.data),
+    enabled: canCancelPending,
+    refetchInterval: 30_000,
+  });
+
+  // Initiate-sale mutation
+  const initiate = useMutation({
     mutationFn: () =>
       salesService
-        .createSale(
+        .initiateSale(
           items.map((i) => ({ drugId: i.drugId, quantity: i.quantity })),
-          paymentMethod.toLowerCase().replace(" ", "_"),
-          discountAmount
+          discountAmount,
+          selectedPatient?.id
         )
         .then((r) => r.data),
     onSuccess: (sale) => {
-      setCompletedSale(sale);
+      setInitiatedSale(sale);
       clearCart();
       setDiscountPct(0);
-      setPaymentMethod("Cash");
+      setSelectedPatient(null);
+      setPatientSearch("");
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.DRUGS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PENDING_SALES] });
+    },
+  });
+
+  const cancelPending = useMutation({
+    mutationFn: (id: string) => salesService.cancelPendingSale(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PENDING_SALES] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.DRUGS] });
     },
   });
 
   const handleAddToCart = (drug: Drug) => {
-    if (drug.stockQty === 0) return;
+    if (drug.availableQty === 0) return;
     addItem({
       drugId: drug.id,
       drugName: drug.name,
+      brandName: drug.brandName,
       quantity: 1,
       unitPrice: drug.sellingPrice,
       subtotal: drug.sellingPrice,
@@ -174,18 +216,18 @@ export default function SalesPage() {
                 key={drug.id}
                 onClick={() => handleAddToCart(drug)}
                 className={`flex cursor-pointer items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.005] ${
-                  drug.stockQty === 0 ? "opacity-50 cursor-not-allowed" : ""
+                  drug.availableQty === 0 ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-900 truncate">{drug.name}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {[drug.strength, drug.form, drug.category].filter(Boolean).join(" • ")}
+                    {[drug.brandName, drug.strength, drug.form, drug.category].filter(Boolean).join(" • ")}
                   </p>
                 </div>
                 <div className="ml-4 flex items-center gap-3 shrink-0">
                   <Badge variant={stockVariant(drug)}>
-                    {drug.stockQty === 0 ? "Out of stock" : `${drug.stockQty} in stock`}
+                    {drug.availableQty === 0 ? "Out of stock" : `${drug.availableQty} available`}
                   </Badge>
                   <span className="font-bold text-slate-900 text-sm w-24 text-right">
                     {fmt(drug.sellingPrice)}
@@ -195,7 +237,7 @@ export default function SalesPage() {
                       e.stopPropagation();
                       handleAddToCart(drug);
                     }}
-                    disabled={drug.stockQty === 0}
+                    disabled={drug.availableQty === 0}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
                   >
                     <Plus size={16} />
@@ -205,6 +247,36 @@ export default function SalesPage() {
             ))
           )}
         </div>
+
+        {/* Pending sales (cancellable) */}
+        {canCancelPending && pendingSales && pendingSales.length > 0 && (
+          <div className="mt-5 shrink-0 rounded-2xl bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900">Pending Sales</h3>
+            <div className="space-y-2">
+              {pendingSales.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-teal-600">{p.code}</span>
+                    <span className="text-slate-500">{p.items.length} item(s) · {fmt(p.total)}</span>
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                      <Clock size={12} /> {minutesLeft(p.expiresAt)}m left
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => cancelPending.mutate(p.id)}
+                    disabled={cancelPending.isPending}
+                    className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Right panel: cart ── */}
@@ -213,6 +285,59 @@ export default function SalesPage() {
         <div className="bg-gradient-to-r from-teal-600/10 to-amber-500/10 p-5">
           <h2 className="text-xl font-bold text-slate-900">Shopping Cart</h2>
           <p className="mt-0.5 text-sm text-slate-500">{items.length} item(s)</p>
+        </div>
+
+        {/* Patient (optional) */}
+        <div className="border-b border-slate-100 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Patient Details
+          </p>
+          {selectedPatient ? (
+            <div className="flex items-center justify-between rounded-xl bg-teal-50 px-3 py-2 dark:bg-teal-950/40">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">{selectedPatient.fullName}</p>
+                <p className="text-xs text-slate-500">{selectedPatient.phone}</p>
+              </div>
+              <button
+                onClick={() => setSelectedPatient(null)}
+                className="shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-white hover:text-red-500"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search patient by name or ID (optional)…"
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20"
+              />
+              {debouncedPatientSearch.trim().length > 0 && (
+                <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {patientMatches.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-slate-400">No patients found.</p>
+                  ) : (
+                    patientMatches.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setSelectedPatient(p);
+                          setPatientSearch("");
+                        }}
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                      >
+                        <span className="font-medium text-slate-900">{p.fullName}</span>
+                        <span className="ml-2 text-xs text-slate-500">{p.phone}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cart items */}
@@ -234,7 +359,9 @@ export default function SalesPage() {
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="text-sm font-semibold text-slate-900 truncate">{item.drugName}</p>
-                    <p className="text-xs text-slate-500">{fmt(item.unitPrice)} each</p>
+                    <p className="text-xs text-slate-500">
+                      {item.brandName ? `${item.brandName} · ` : ""}{fmt(item.unitPrice)} each
+                    </p>
                   </div>
                   <button
                     onClick={() => removeItem(item.drugId)}
@@ -302,45 +429,28 @@ export default function SalesPage() {
             </div>
           </div>
 
-          {/* Payment method */}
-          <div>
-            <p className="mb-2 text-sm font-semibold text-slate-700">Payment Method</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_METHODS.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setPaymentMethod(m)}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
-                    paymentMethod === m
-                      ? "bg-teal-600 text-white shadow-md shadow-teal-600/30"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Checkout button */}
-          {checkout.isError && (
+          {/* Initiate sale */}
+          {initiate.isError && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-              {(checkout.error as Error).message}
+              {(initiate.error as Error).message}
             </p>
           )}
           <Button
-            onClick={() => checkout.mutate()}
-            disabled={items.length === 0 || checkout.isPending}
+            onClick={() => initiate.mutate()}
+            disabled={items.length === 0 || initiate.isPending}
             className="w-full"
           >
-            {checkout.isPending ? "Processing…" : "Complete Sale"}
+            {initiate.isPending ? "Processing…" : "Initiate Sale"}
           </Button>
+          <p className="text-center text-xs text-slate-400">
+            Generates a code for the cashier to complete this sale
+          </p>
         </div>
       </div>
 
-      {/* Receipt modal */}
-      {completedSale && (
-        <ReceiptModal sale={completedSale} onClose={() => setCompletedSale(null)} />
+      {/* Sale code modal */}
+      {initiatedSale && (
+        <SaleCodeModal sale={initiatedSale} onClose={() => setInitiatedSale(null)} />
       )}
     </div>
   );

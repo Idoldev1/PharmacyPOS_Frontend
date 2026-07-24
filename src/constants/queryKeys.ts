@@ -5,8 +5,10 @@ export const QUERY_KEYS = {
   PATIENTS: "patients",
   PATIENT: "patient",
   SALES: "sales",
+  PENDING_SALES: "pending-sales",
   PRESCRIPTIONS: "prescriptions",
   LOW_STOCK: "low-stock",
   REPORTS: "reports",
   SUPPLIERS: "suppliers",
+  BRANDS: "brands",
 } as const;

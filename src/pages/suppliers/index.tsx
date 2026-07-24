@@ -102,7 +102,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
   const qc = useQueryClient();
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [expectedDelivery, setExpectedDelivery] = useState("");
-  const [items, setItems] = useState<{ drugId: string; drugName: string; quantity: number; unitCost: number }[]>([]);
+  const [items, setItems] = useState<{ drugId: string; drugName: string; brandName?: string; quantity: number; unitCost: number }[]>([]);
   const [error, setError] = useState("");
   const [, setSent] = useState(false);
 
@@ -140,7 +140,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
     const first = drugs[0];
     setItems((prev) => [
       ...prev,
-      { drugId: first.id, drugName: first.name, quantity: 100, unitCost: first.unitCost },
+      { drugId: first.id, drugName: first.name, brandName: first.brandName, quantity: 100, unitCost: first.unitCost },
     ]);
   };
 
@@ -152,7 +152,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
       if (field === "drugId") {
         const drug = drugs.find((d) => d.id === value);
         return drug
-          ? { ...item, drugId: drug.id, drugName: drug.name, unitCost: drug.unitCost }
+          ? { ...item, drugId: drug.id, drugName: drug.name, brandName: drug.brandName, unitCost: drug.unitCost }
           : item;
       }
       return { ...item, [field]: value };
@@ -193,7 +193,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
           <p className="mb-1 flex items-center gap-1 text-xs text-slate-500">
             <Mail size={12} /> Email
           </p>
-          <p className="font-medium text-slate-900 text-sm">{supplier.email}</p>
+          <p className="font-medium text-slate-900 text-sm break-all">{supplier.email}</p>
         </div>
       </div>
 
@@ -235,7 +235,7 @@ function PurchaseOrderPanel({ supplier }: { supplier: Supplier }) {
                     >
                       {drugs.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.name}{d.strength ? ` ${d.strength}` : ""} — ₦{Number(d.unitCost).toLocaleString()}
+                          {d.name}{d.strength ? ` ${d.strength}` : ""} ({d.brandName}) — ₦{Number(d.unitCost).toLocaleString()}
                         </option>
                       ))}
                     </select>

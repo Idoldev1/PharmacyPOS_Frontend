@@ -10,11 +10,15 @@ export interface Drug {
   batchNo?: string;
   expiryDate?: string;
   stockQty: number;
+  reservedQty: number;
+  availableQty: number;
   reorderLevel: number;
   unitCost: number;
   sellingPrice: number;
   nafdacNo?: string;
   supplierId?: string;
+  brandId: string;
+  brandName: string;
   branchId: string;
   status: StockStatus;
   isActive: boolean;
@@ -26,4 +30,6 @@ export interface DrugListResult {
   total: number;
   page: number;
   pageSize: number;
+  totalValue: number;
+  totalWorth: number;
 }

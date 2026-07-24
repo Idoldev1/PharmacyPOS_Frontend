@@ -27,9 +27,9 @@ function paymentIcon(method: string) {
 }
 
 function statusVariant(status: string): "success" | "warning" | "danger" | "info" {
-  if (status === "completed") return "success";
-  if (status === "pending") return "warning";
-  if (status === "refunded") return "danger";
+  if (status === "Completed") return "success";
+  if (status === "Pending") return "warning";
+  if (status === "Refunded") return "danger";
   return "info";
 }
 
@@ -73,7 +73,9 @@ function SaleDetailPanel({ sale, onClose }: { sale: Sale; onClose: () => void })
           <div className="rounded-xl border border-slate-200 p-4">
             <p className="mb-1 text-xs text-slate-500">Customer</p>
             <p className="font-medium text-slate-900">
-              {sale.patientId ? `PAT-${sale.patientId.slice(0, 8).toUpperCase()}` : "Walk-in Customer"}
+              {sale.patientId
+                ? sale.patientName ?? `PAT-${sale.patientId.slice(0, 8).toUpperCase()}`
+                : "Walk-in Customer"}
             </p>
           </div>
 
@@ -143,7 +145,7 @@ export default function BillingPage() {
   const todaySales = allSales.filter((s) => new Date(s.createdAt).toDateString() === todayIso);
   const todayRevenue = todaySales.reduce((sum, s) => sum + Number(s.total), 0);
   const todayCount = todaySales.length;
-  const refundedCount = allSales.filter((s) => s.status === "refunded").length;
+  const refundedCount = allSales.filter((s) => s.status === "Refunded").length;
   const avgSale = todayCount > 0 ? todayRevenue / todayCount : 0;
 
   return (
@@ -251,7 +253,7 @@ export default function BillingPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {s.patientId
-                        ? `PAT-${s.patientId.slice(0, 6).toUpperCase()}`
+                        ? s.patientName ?? `PAT-${s.patientId.slice(0, 6).toUpperCase()}`
                         : "Walk-in Customer"}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{s.items.length}</td>
@@ -265,7 +267,9 @@ export default function BillingPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                      {s.cashierId.slice(0, 8).toUpperCase()}
+                      {s.cashierFirstName
+                        ? `${s.cashierFirstName}-${s.cashierId.slice(0, 8).toUpperCase()}`
+                        : s.cashierId.slice(0, 8).toUpperCase()}
                     </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                       {formatDate(s.createdAt)}

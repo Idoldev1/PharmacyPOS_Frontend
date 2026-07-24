@@ -6,6 +6,7 @@ export interface ReportsSummary {
   avgSaleValue: number;
   lowStockCount: number;
   topSellingDrug: string;
+  topSellingBrand?: string;
   topSellingUnits: number;
 }
 
@@ -22,6 +23,7 @@ export interface PaymentMethodPoint {
 
 export interface TopDrugEntry {
   name: string;
+  brand?: string;
   units: number;
   revenue: number;
 }

@@ -6,6 +6,7 @@ import {
   FileText,
   Flag,
   Plus,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { prescriptionService } from "../../services/prescriptionService";
 import { QUERY_KEYS } from "../../constants/queryKeys";
+import { useDebounce } from "../../hooks/useDebounce";
 import type {
   Prescription,
   PrescriptionStatus,
@@ -23,15 +25,15 @@ import type {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusVariant(status: PrescriptionStatus) {
   const map: Record<PrescriptionStatus, "warning" | "info" | "success" | "danger"> = {
-    pending: "warning",
-    verified: "info",
-    dispensed: "success",
-    flagged: "danger",
+    Pending: "warning",
+    Verified: "info",
+    Dispensed: "success",
+    Flagged: "danger",
   };
   return map[status];
 }
 
-const STATUS_TABS = ["all", "pending", "verified", "dispensed", "flagged"] as const;
+const STATUS_TABS = ["All", "Pending", "Verified", "Dispensed", "Flagged"] as const;
 
 // ─── New Prescription form (slide-in panel) ───────────────────────────────────
 function NewPrescriptionPanel({
@@ -304,16 +306,22 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function PrescriptionsPage() {
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<typeof STATUS_TABS[number]>("all");
+  const [activeTab, setActiveTab] = useState<typeof STATUS_TABS[number]>("All");
   const [selected, setSelected] = useState<Prescription | null>(null);
   const [showNewPanel, setShowNewPanel] = useState(false);
   const [flagId, setFlagId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 350);
 
   const { data, isLoading } = useQuery({
-    queryKey: [QUERY_KEYS.PRESCRIPTIONS, activeTab],
+    queryKey: [QUERY_KEYS.PRESCRIPTIONS, activeTab, debouncedSearch],
     queryFn: () =>
       prescriptionService
-        .getPrescriptions({ status: activeTab === "all" ? undefined : activeTab, pageSize: 50 })
+        .getPrescriptions({
+          status: activeTab === "All" ? undefined : activeTab,
+          q: debouncedSearch || undefined,
+          pageSize: 50,
+        })
         .then((r) => r.data),
   });
 
@@ -358,6 +366,18 @@ export default function PrescriptionsPage() {
             </button>
           </div>
 
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search prescriptions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20"
+            />
+          </div>
+
           {/* Status tabs */}
           <div className="flex gap-1 overflow-x-auto pb-1">
             {STATUS_TABS.map((tab) => (
@@ -381,7 +401,9 @@ export default function PrescriptionsPage() {
           {isLoading ? (
             <div className="p-5 text-center text-sm text-slate-400">Loading…</div>
           ) : prescriptions.length === 0 ? (
-            <div className="p-5 text-center text-sm text-slate-400">No prescriptions found.</div>
+            <div className="p-5 text-center text-sm text-slate-400">
+              {search ? "No prescriptions match your search." : "No prescriptions found."}
+            </div>
           ) : (
             prescriptions.map((rx) => (
               <button
@@ -450,7 +472,7 @@ export default function PrescriptionsPage() {
             </div>
 
             {/* Flag reason */}
-            {selected.status === "flagged" && selected.flagReason && (
+            {selected.status === "Flagged" && selected.flagReason && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                 <div className="flex items-start gap-3">
                   <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-500" />
@@ -488,9 +510,9 @@ export default function PrescriptionsPage() {
             </div>
 
             {/* Actions */}
-            {selected.status !== "dispensed" && selected.status !== "flagged" && (
+            {selected.status !== "Dispensed" && selected.status !== "Flagged" && (
               <div className="flex gap-3">
-                {selected.status === "pending" && (
+                {selected.status === "Pending" && (
                   <Button
                     className="flex-1"
                     disabled={verifyMutation.isPending}
@@ -500,7 +522,7 @@ export default function PrescriptionsPage() {
                     {verifyMutation.isPending ? "Verifying…" : "Verify Prescription"}
                   </Button>
                 )}
-                {selected.status === "verified" && (
+                {selected.status === "Verified" && (
                   <Button
                     variant="secondary"
                     className="flex-1"
