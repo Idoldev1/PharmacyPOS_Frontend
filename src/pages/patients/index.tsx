@@ -6,6 +6,8 @@ import { Button } from "../../components/ui/Button";
 import { patientService } from "../../services/patientService";
 import { QUERY_KEYS } from "../../constants/queryKeys";
 import { useDebounce } from "../../hooks/useDebounce";
+import { usePermissions } from "../../hooks/usePermissions";
+import { Permissions } from "../../constants/permissions";
 import type { Patient, CreatePatientRequest } from "../../types/patient.types";
 import type { Sale } from "../../types/sale.types";
 
@@ -213,7 +215,7 @@ function PurchaseHistory({ patientId }: { patientId: string }) {
                   </td>
                   <td className="px-4 py-3 capitalize text-slate-600">{s.paymentMethod}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={s.status === "completed" ? "success" : s.status === "refunded" ? "danger" : "warning"}>
+                    <Badge variant={s.status === "Completed" ? "success" : s.status === "Refunded" ? "danger" : "warning"}>
                       {s.status}
                     </Badge>
                   </td>
@@ -234,6 +236,8 @@ export default function PatientsPage() {
   const [selected, setSelected] = useState<Patient | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const debouncedSearch = useDebounce(search, 350);
+  const { hasPermission } = usePermissions();
+  const canAddPatient = hasPermission(Permissions.Patients.Create);
 
   const { data, isLoading } = useQuery({
     queryKey: [QUERY_KEYS.PATIENTS, debouncedSearch],
@@ -253,9 +257,11 @@ export default function PatientsPage() {
         <div className="border-b border-slate-100 p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-bold text-slate-900">Patients</h2>
-            <Button size="sm" onClick={() => setShowAdd(true)}>
-              <UserPlus size={15} /> Add
-            </Button>
+            {canAddPatient && (
+              <Button size="sm" onClick={() => setShowAdd(true)}>
+                <UserPlus size={15} /> Add
+              </Button>
+            )}
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />

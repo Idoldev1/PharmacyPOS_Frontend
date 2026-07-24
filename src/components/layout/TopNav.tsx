@@ -1,9 +1,30 @@
-import { Bell, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useUiStore } from "../../store/uiStore";
+import { ROUTES } from "../../constants/routes";
+import { NotificationBell } from "./NotificationBell";
 import { UserNav } from "./UserNav";
+
+const PAGE_TITLES: Record<string, string> = {
+  [ROUTES.DASHBOARD]: "Dashboard",
+  [ROUTES.SALES]: "New Sale",
+  [ROUTES.CHECKOUT]: "Checkout",
+  [ROUTES.PRESCRIPTIONS]: "Prescriptions",
+  [ROUTES.PATIENTS]: "Patients",
+  [ROUTES.INVENTORY]: "Inventory",
+  [ROUTES.BILLING]: "Billing",
+  [ROUTES.INSURANCE]: "Insurance",
+  [ROUTES.SUPPLIERS]: "Suppliers",
+  [ROUTES.REPORTS]: "Reports",
+  [ROUTES.SETTINGS]: "Settings",
+  [ROUTES.CHANGE_PASSWORD]: "Change Password",
+  [ROUTES.PROFILE]: "Profile",
+};
 
 export function TopNav() {
   const { isDark, toggleDark } = useUiStore();
+  const { pathname } = useLocation();
+  const pageTitle = PAGE_TITLES[pathname] ?? "Dashboard";
 
   const date = new Date().toLocaleDateString("en-NG", {
     weekday: "long",
@@ -19,7 +40,7 @@ export function TopNav() {
   return (
     <header className="flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-8 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Pharmacy Dashboard</h1>
+        <h1 className="text-xl font-bold text-slate-900">{pageTitle}</h1>
         <p className="text-xs text-slate-500">{date}</p>
       </div>
       <div className="flex items-center gap-3">
@@ -39,10 +60,7 @@ export function TopNav() {
           )}
         </button>
 
-        <button className="relative rounded-xl p-3 transition hover:bg-slate-100">
-          <Bell size={20} className="text-slate-600" />
-          <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-amber-500" />
-        </button>
+        <NotificationBell />
 
         <UserNav />
       </div>

@@ -54,30 +54,30 @@ export default function ChangePasswordPage() {
         }}
       />
       <div className="absolute inset-0 bg-slate-900/55" />
-      <div className="relative z-10 w-full max-w-xl rounded-3xl border border-white/10 bg-white/95 p-8 shadow-2xl">
+      <div className="relative z-10 w-full max-w-xl rounded-3xl border border-white/10 bg-white/95 p-8 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
         <div className="mb-8 text-center">
-          <h2 className="text-3xl font-semibold text-slate-900">
+          <h2 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
             Change password
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Update your password for your account.
           </p>
         </div>
 
         <div className="space-y-5">
           {error ? (
-            <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
               {error}
             </div>
           ) : null}
           {message ? (
-            <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
               {message}
             </div>
           ) : null}
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Current password
             </label>
             <input
@@ -85,12 +85,12 @@ export default function ChangePasswordPage() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
               New password
             </label>
             <input
@@ -98,12 +98,12 @@ export default function ChangePasswordPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Confirm new password
             </label>
             <input
@@ -111,7 +111,7 @@ export default function ChangePasswordPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 

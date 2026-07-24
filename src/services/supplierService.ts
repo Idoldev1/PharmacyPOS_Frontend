@@ -23,6 +23,7 @@ export interface PurchaseOrderItem {
   id: string;
   drugId: string;
   drugName: string;
+  brandName?: string;
   quantity: number;
   unitCost: number;
   subtotal: number;
@@ -43,7 +44,7 @@ export interface PurchaseOrder {
 export interface CreatePurchaseOrderRequest {
   orderDate: string;
   expectedDelivery?: string;
-  items: { drugId: string; drugName: string; quantity: number; unitCost: number }[];
+  items: { drugId: string; drugName: string; brandName?: string; quantity: number; unitCost: number }[];
 }
 
 export const supplierService = {

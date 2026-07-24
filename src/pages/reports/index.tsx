@@ -88,7 +88,11 @@ export default function ReportsPage() {
           icon={TrendingUp}
           label="Top Selling Drug"
           value={summary?.topSellingDrug ?? "—"}
-          sub={summary?.topSellingUnits ? `${summary.topSellingUnits} units` : undefined}
+          sub={
+            summary?.topSellingUnits
+              ? `${summary.topSellingBrand ? `${summary.topSellingBrand} · ` : ""}${summary.topSellingUnits} units`
+              : undefined
+          }
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
         />
@@ -185,7 +189,10 @@ export default function ReportsPage() {
                 topDrugs.map((drug, i) => (
                   <tr key={i} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-700">#{i + 1}</td>
-                    <td className="px-4 py-3 text-slate-900">{drug.name}</td>
+                    <td className="px-4 py-3 text-slate-900">
+                      {drug.name}
+                      {drug.brand && <div className="text-xs text-slate-400">{drug.brand}</div>}
+                    </td>
                     <td className="px-4 py-3 text-right text-slate-500">{drug.units}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-900">
                       ₦{Number(drug.revenue).toLocaleString()}

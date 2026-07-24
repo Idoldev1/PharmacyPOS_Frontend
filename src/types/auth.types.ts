@@ -1,12 +1,14 @@
-export type Role = "pharmacist" | "cashier" | "manager" | "admin";
+export type Role = "Pharmacist" | "Cashier" | "Manager" | "Admin" | "ChiefPharmacist";
 
 export interface User {
   id: string;
   username: string;
+  email?: string;
   firstName: string;
   lastName: string;
   role: Role;
   branchId: string;
+  permissions: string[];
 }
 
 export interface AuthToken {

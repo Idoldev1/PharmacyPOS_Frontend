@@ -28,9 +28,21 @@ export interface StaffUser {
   isActive: boolean;
 }
 
+export interface CreateStaffPayload {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
 export const settingsService = {
   getSettings: () => api.get<BranchSettings>("/settings"),
   updateSettings: (data: BranchSettings) => api.put<BranchSettings>("/settings", data),
   getStaff: () => api.get<StaffUser[]>("/settings/staff"),
   toggleUser: (userId: string) => api.patch(`/settings/staff/${userId}/toggle`),
+  createStaff: (payload: CreateStaffPayload) => api.post<StaffUser>("/settings/staff", payload),
+  resetStaffPassword: (userId: string, newPassword: string) =>
+    api.post(`/settings/staff/${userId}/reset-password`, { newPassword }),
 };

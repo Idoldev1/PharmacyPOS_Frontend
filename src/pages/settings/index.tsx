@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building, Users, Receipt, Printer, Database, KeyRound } from "lucide-react";
+import { Building, Users, Receipt, Printer, Database, KeyRound, UserPlus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
@@ -8,11 +8,31 @@ import {
   settingsService,
   type BranchSettings,
   type StaffUser,
+  type CreateStaffPayload,
 } from "../../services/settingsService";
 import { ROUTES } from "../../constants/routes";
+import { usePermissions } from "../../hooks/usePermissions";
+import { Permissions } from "../../constants/permissions";
 
 const inputCls =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30";
+
+const STAFF_ROLES = [
+  { value: "Pharmacist", label: "Pharmacist" },
+  { value: "Cashier", label: "Cashier" },
+  { value: "Manager", label: "Manager" },
+  { value: "Admin", label: "Admin" },
+  { value: "ChiefPharmacist", label: "Chief Pharmacist" },
+] as const;
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      {children}
+    </div>
+  );
+}
 
 function SectionCard({
   icon: Icon,
@@ -108,12 +128,166 @@ function PharmacyProfileSection({ settings }: { settings: BranchSettings }) {
   );
 }
 
+// ─── Onboard staff slide-in panel ──────────────────────────────────────────────
+function AddStaffPanel({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [form, setForm] = useState<CreateStaffPayload>({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    role: "Pharmacist",
+  });
+  const [error, setError] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: (payload: CreateStaffPayload) =>
+      settingsService.createStaff(payload).then((r) => r.data),
+    onSuccess: () => { onSuccess(); onClose(); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const handleSubmit = () => {
+    if (!form.firstName.trim()) return setError("First name is required.");
+    if (!form.lastName.trim()) return setError("Last name is required.");
+    if (!form.username.trim()) return setError("Username is required.");
+    if (!form.email.trim()) return setError("Email is required.");
+    if (form.password.length < 6) return setError("Password must be at least 6 characters.");
+    setError("");
+    mutation.mutate(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end">
+      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="flex w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="font-bold text-slate-900">Onboard Staff</h2>
+          <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100">
+            <X size={20} className="text-slate-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="First Name *">
+              <input className={inputCls} value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                placeholder="Adebayo" />
+            </Field>
+            <Field label="Last Name *">
+              <input className={inputCls} value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                placeholder="Oluwaseun" />
+            </Field>
+          </div>
+
+          <Field label="Username *">
+            <input className={inputCls} value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              placeholder="adebayo.o" />
+          </Field>
+
+          <Field label="Email *">
+            <input type="email" className={inputCls} value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="adebayo@pharmacy.com" />
+          </Field>
+
+          <Field label="Temporary Password *">
+            <input type="password" className={inputCls} value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder="At least 6 characters" />
+          </Field>
+
+          <Field label="Role">
+            <select className={inputCls} value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              {STAFF_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </Field>
+
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+        </div>
+
+        <div className="border-t border-slate-100 px-6 py-4">
+          <Button className="w-full" onClick={handleSubmit} disabled={mutation.isPending}>
+            {mutation.isPending ? "Creating…" : "Create Account"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reset staff password modal ────────────────────────────────────────────────
+function ResetPasswordModal({ user, onClose, onSuccess }: { user: StaffUser; onClose: () => void; onSuccess: () => void }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () => settingsService.resetStaffPassword(user.id, newPassword),
+    onSuccess: () => { onSuccess(); onClose(); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const handleSubmit = () => {
+    if (newPassword.length < 6) return setError("Password must be at least 6 characters.");
+    if (newPassword !== confirmPassword) return setError("Passwords do not match.");
+    setError("");
+    mutation.mutate();
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="font-bold text-slate-900">Reset Password</h2>
+          <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100">
+            <X size={20} className="text-slate-500" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 py-5">
+          <p className="text-sm text-slate-500">
+            Set a new password for <span className="font-medium text-slate-700">{user.fullName}</span> ({user.username}).
+          </p>
+          <Field label="New Password *">
+            <input type="password" className={inputCls} value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 6 characters" />
+          </Field>
+          <Field label="Confirm Password *">
+            <input type="password" className={inputCls} value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password" />
+          </Field>
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+        </div>
+
+        <div className="border-t border-slate-100 px-6 py-4">
+          <Button className="w-full" onClick={handleSubmit} disabled={mutation.isPending}>
+            {mutation.isPending ? "Saving…" : "Set New Password"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── User Management section ─────────────────────────────────────────────────
 function UserManagementSection() {
   const qc = useQueryClient();
+  const { hasPermission } = usePermissions();
+  const canManageUsers = hasPermission(Permissions.Settings.ManageUsers);
+  const [showAdd, setShowAdd] = useState(false);
+  const [resetTarget, setResetTarget] = useState<StaffUser | null>(null);
+
   const { data: staff = [], isLoading } = useQuery({
     queryKey: ["settings-staff"],
     queryFn: () => settingsService.getStaff().then((r) => r.data),
+    enabled: canManageUsers,
   });
 
   const toggleMutation = useMutation({
@@ -121,9 +295,17 @@ function UserManagementSection() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings-staff"] }),
   });
 
+  if (!canManageUsers) return null;
+
   return (
     <SectionCard icon={Users} iconBg="bg-blue-50" iconColor="text-blue-600"
       title="User Management" subtitle="Manage staff accounts and roles">
+      <div className="mb-4 flex justify-end">
+        <Button size="sm" onClick={() => setShowAdd(true)}>
+          <UserPlus size={15} /> Onboard Staff
+        </Button>
+      </div>
+
       {isLoading ? (
         <div className="text-sm text-slate-400">Loading staff…</div>
       ) : staff.length === 0 ? (
@@ -140,6 +322,9 @@ function UserManagementSection() {
                 <Badge variant={user.isActive ? "success" : "warning"}>
                   {user.isActive ? "Active" : "Inactive"}
                 </Badge>
+                <Button size="sm" variant="secondary" onClick={() => setResetTarget(user)}>
+                  Reset Password
+                </Button>
                 <Button size="sm" variant="secondary"
                   onClick={() => toggleMutation.mutate(user.id)}
                   disabled={toggleMutation.isPending}>
@@ -149,6 +334,20 @@ function UserManagementSection() {
             </div>
           ))}
         </div>
+      )}
+
+      {showAdd && (
+        <AddStaffPanel
+          onClose={() => setShowAdd(false)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ["settings-staff"] })}
+        />
+      )}
+      {resetTarget && (
+        <ResetPasswordModal
+          user={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onSuccess={() => {}}
+        />
       )}
     </SectionCard>
   );
